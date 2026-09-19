@@ -91,18 +91,28 @@ fun SlidingPillSelector(
             dampingRatio = Spring.DampingRatioNoBouncy,
             stiffness = Spring.StiffnessMedium
         )
-        // First layout snaps (no entrance sweep), taps glide, size changes snap.
+        // First layout snaps (no entrance sweep), taps glide, releases glide
+        // from the lift point to the segment start, size changes snap.
         // A tap landing while a release is still settling re-takes the glide.
-        LaunchedEffect(segmentWidthPx, safeIndex) {
+        LaunchedEffect(segmentWidthPx, safeIndex, settleIndex) {
             if (!thumbReady) {
                 thumbAnim.snapTo(segmentWidthPx * safeIndex)
                 thumbReady = true
             } else if (!dragOffsetPx.isNaN()) {
                 // Finger owns the thumb, nothing to do.
             } else if (settleIndex != null && settleIndex == safeIndex) {
-                // Caller caught up: re-anchor silently, hand back to the spring.
-                thumbAnim.snapTo(settlePx)
+                // Caller caught up: start from the lift point, then glide
+                // smoothly onto the segment start. Snapping straight to the
+                // segment was the jarring jump; holding at settlePx forever
+                // was the stuck thumb. This does neither.
+                val target = segmentWidthPx * safeIndex
+                if (thumbAnim.value != settlePx) {
+                    thumbAnim.snapTo(settlePx)
+                }
                 settleIndex = null
+                if (thumbAnim.value != target) {
+                    thumbAnim.animateTo(target, glide)
+                }
             } else {
                 settleIndex = null
                 thumbAnim.animateTo(segmentWidthPx * safeIndex, glide)
@@ -122,9 +132,14 @@ fun SlidingPillSelector(
         // Drag lives on the content box (segment pixels are known here), taps
         // still land on the per-segment click targets below.
         Box(
-            modifier = Modifier.pointerInput(segmentWidthPx) {
+            modifier = Modifier.pointerInput(segmentWidthPx, safeIndex) {
                 detectHorizontalDragGestures(
-                    onDragStart = { dragOffsetPx = thumbAnim.value },
+                    onDragStart = {
+                        // A fresh drag while a release is still settling takes
+                        // over from the held lift point, not the stale spring.
+                        dragOffsetPx = if (settleIndex != null) settlePx else thumbAnim.value
+                        settleIndex = null
+                    },
                     onHorizontalDrag = { _, dragAmount ->
                         dragOffsetPx = (dragOffsetPx + dragAmount)
                             .coerceIn(0f, segmentWidthPx * (options.size - 1))
@@ -139,7 +154,16 @@ fun SlidingPillSelector(
                         settleIndex = index
                         onSelect(index)
                     },
-                    onDragCancel = { dragOffsetPx = Float.NaN }
+                    onDragCancel = {
+                        // Abandoned gesture glides back to the current segment
+                        // instead of jumping. LaunchedEffect animates from
+                        // settlePx to safeIndex once settleIndex is set.
+                        if (!dragOffsetPx.isNaN()) {
+                            settlePx = dragOffsetPx
+                            settleIndex = safeIndex
+                        }
+                        dragOffsetPx = Float.NaN
+                    }
                 )
             }
         ) {
