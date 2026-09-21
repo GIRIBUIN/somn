@@ -7,7 +7,13 @@ import dev.vic41148.somn.core.domain.model.SleepSession
 import dev.vic41148.somn.core.domain.model.AudioEvent
 import dev.vic41148.somn.core.domain.usecase.ExportCsvUseCase
 import dev.vic41148.somn.core.domain.usecase.ReportSummary
+import dev.vic41148.somn.core.domain.usecase.WeeklyConsistency
+import dev.vic41148.somn.core.domain.usecase.computeConsistency
+import dev.vic41148.somn.core.domain.usecase.spentDatesForMonth
+import dev.vic41148.somn.core.domain.usecase.spentDatesToCsv
 import dev.vic41148.somn.core.domain.usecase.summarizeSessions
+import dev.vic41148.somn.core.domain.usecase.toGraceMonthKey
+import dev.vic41148.somn.core.domain.usecase.weeklyConsistency
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -26,7 +32,7 @@ class AnalyticsViewModel @Inject constructor(
     private val tagRepository: dev.vic41148.somn.core.data.repository.TagRepository,
     private val exportCsv: ExportCsvUseCase,
     private val audioClipStore: dev.vic41148.somn.core.data.audio.AudioClipStore,
-    preferencesRepository: dev.vic41148.somn.core.data.repository.SomnPreferencesRepository
+    private val preferencesRepository: dev.vic41148.somn.core.data.repository.SomnPreferencesRepository
 ) : ViewModel() {
 
     val sessions = sleepRepository.observeCompletedSessions()
@@ -53,10 +59,90 @@ class AnalyticsViewModel @Inject constructor(
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    /** Spec §6.6 gamification kill-switch, hides streaks/rings/badges everywhere downstream. */
+    val showStreaksScores: StateFlow<Boolean> = preferencesRepository.showStreaksScores
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
+    private val graceMonth: StateFlow<String?> = preferencesRepository.graceMonth
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    private val graceDatesCsv: StateFlow<String?> = preferencesRepository.graceDatesCsv
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
     /** Aggregate stats for the selected range. A null value means an empty range, and the caller shows the empty state. */
-    val summary: StateFlow<ReportSummary?> = combine(rangedSessions, restModeSince) { list, since ->
-        summarizeSessions(list, since)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+    val summary: StateFlow<ReportSummary?> =
+        combine(rangedSessions, restModeSince, graceMonth, graceDatesCsv) { list, since, month, csv ->
+            summarizeSessions(
+                list,
+                since,
+                java.time.LocalDate.now(),
+                spentDatesForMonth(month, csv, java.time.YearMonth.now())
+            )
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    /**
+     * Spec §6: global Consistency Streak over full history (the range summary above
+     * stays range-relative). The ledger records forgiven *dates*, so the write-back
+     * converges after one union instead of oscillating the number.
+     */
+    private data class ConsistencyLedger(
+        val result: dev.vic41148.somn.core.domain.usecase.ConsistencyResult,
+        val monthKey: String,
+        val spent: Set<java.time.LocalDate>
+    )
+
+    private val ledger: StateFlow<ConsistencyLedger?> =
+        combine(sessions, restModeSince, graceMonth, graceDatesCsv) { list, since, month, csv ->
+            if (list.isEmpty()) {
+                null
+            } else {
+                val zone = java.time.ZoneId.systemDefault()
+                val today = java.time.LocalDate.now()
+                val logged = list.filter { it.isCompleted }
+                    .map {
+                        java.time.Instant.ofEpochMilli(it.startTimeMillis).atZone(zone).toLocalDate()
+                    }.toSet()
+                val frozen = if (since == null) emptySet()
+                else generateSequence(
+                    java.time.Instant.ofEpochMilli(since).atZone(zone).toLocalDate()
+                ) { it.plusDays(1) }.takeWhile { !it.isAfter(today) }.toSet()
+                val now = java.time.YearMonth.now()
+                val spent = spentDatesForMonth(month, csv, now)
+                val result = computeConsistency(logged, today, spent, frozen)
+                ConsistencyLedger(result, now.toGraceMonthKey(), spent)
+            }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    val consistency: StateFlow<dev.vic41148.somn.core.domain.usecase.ConsistencyResult?> =
+        ledger.map { it?.result }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    /** Spec §6.4: rolling 7-day ring data, oldest → newest ending today. */
+    val weekly: StateFlow<WeeklyConsistency> = sessions.map { list ->
+        val zone = java.time.ZoneId.systemDefault()
+        weeklyConsistency(
+            list.filter { it.isCompleted }
+                .map {
+                    java.time.Instant.ofEpochMilli(it.startTimeMillis).atZone(zone).toLocalDate()
+                }.toSet()
+        )
+    }.stateIn(
+        viewModelScope, SharingStarted.WhileSubscribed(5000),
+        WeeklyConsistency(0, List(7) { false })
+    )
+
+    init {
+        viewModelScope.launch {
+            ledger.collect { entry ->
+                if (entry != null && entry.result.newlySpent.isNotEmpty()) {
+                    preferencesRepository.recordGraceDates(
+                        entry.monthKey,
+                        spentDatesToCsv(entry.spent + entry.result.newlySpent)
+                    )
+                }
+            }
+        }
+    }
 
     /**
      * R2 vitals dashboard: latest snapshot plus 14-day history, which the code loads off the main

@@ -45,8 +45,13 @@ data class CyclePhaseRun(val phase: MenstrualCyclePhase, val startMillis: Long, 
 @HiltViewModel
 class TrendsViewModel @Inject constructor(
     private val sleepRepository: SleepRepository,
-    private val userProfileRepository: UserProfileRepository
+    private val userProfileRepository: UserProfileRepository,
+    preferencesRepository: dev.vic41148.somn.core.data.repository.SomnPreferencesRepository
 ) : ViewModel() {
+
+    /** Spec §6.6: off removes the Score metric everywhere on this screen. */
+    val showStreaksScores: StateFlow<Boolean> = preferencesRepository.showStreaksScores
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
     private val _selectedMetric = MutableStateFlow(TrendMetric.SCORE)
     val selectedMetric: StateFlow<TrendMetric> = _selectedMetric.asStateFlow()
@@ -114,9 +119,12 @@ class TrendsViewModel @Inject constructor(
 
     /** Headline numbers for the selected metric + range. Change is latest vs the
      * period average (the card reads "Now against the average"), null when fewer
-     * than 2 sessions. */
-    val trendStats: StateFlow<TrendStats?> = combine(rangedSessions, _selectedMetric) { list, metric ->
-        if (list.size < 2) return@combine null
+     * than 2 sessions. Coerces off Score when the kill-switch hides it. */
+    val trendStats: StateFlow<TrendStats?> =
+        combine(rangedSessions, _selectedMetric, showStreaksScores) { list, selected, scores ->
+            val metric = if (!scores && selected == TrendMetric.SCORE) TrendMetric.DURATION_HOURS
+            else selected
+            if (list.size < 2) return@combine null
         val values = list.map { valueFor(it, metric) }
         val current = values.last()
         val avg = values.average().toFloat()

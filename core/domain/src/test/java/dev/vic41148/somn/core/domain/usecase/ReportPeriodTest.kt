@@ -126,4 +126,18 @@ class ReportPeriodTest {
         val stats = model.sections.first { it.heading == "Sleep summary" }.rows.toMap()
         assertThat(stats["Trend"]).isEqualTo("Declining (-20)")
     }
+
+    @Test
+    fun `pdf without scores keeps raw sleep numbers only`() {
+        val sessions = listOf(sessionDaysAgo(1, score = 80), sessionDaysAgo(2, score = 60))
+        val report = buildPeriodReport(sessions, ReportWindow.WEEK)
+        val model = toReportPdfModel(report, emptyList(), includeScores = false)
+        val stats = model.sections.first { it.heading == "Sleep summary" }.rows.toMap()
+        assertThat(stats["Nights tracked"]).isEqualTo("2")
+        assertThat(stats["Average sleep"]).isNotNull()
+        assertThat(stats).doesNotContainKey("Average score")
+        assertThat(stats).doesNotContainKey("Best night")
+        assertThat(stats).doesNotContainKey("Trend")
+        assertThat(stats).doesNotContainKey("Streak")
+    }
 }

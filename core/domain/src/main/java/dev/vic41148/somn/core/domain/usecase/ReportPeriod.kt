@@ -84,26 +84,37 @@ const val REPORT_PDF_DISCLAIMER =
     "Wellness information only, not medical advice. " +
         "If anything here concerns you, it is worth mentioning to a doctor."
 
-fun toReportPdfModel(report: PeriodReport, tagNames: List<String>): ReportPdfModel {
+fun toReportPdfModel(
+    report: PeriodReport,
+    tagNames: List<String>,
+    /** Spec §6.6: off drops every score-derived row, raw sleep numbers stay. */
+    includeScores: Boolean = true
+): ReportPdfModel {
     val s = report.summary
     val statsRows = if (s == null) {
         listOf("Nights tracked" to "0")
     } else {
-        listOf(
-            "Nights tracked" to "${s.nights}",
-            "Average score" to "${s.avgScore}",
-            "Average sleep" to formatDurationShort(s.avgDurationMinutes),
-            "Average efficiency" to "${s.avgEfficiencyPercent}%",
-            "Total sleep" to formatDurationShort(s.totalSleepMinutes),
-            "Best night" to "${s.bestScore}",
-            "Trend" to when {
-                s.scoreDelta > 0 -> "Improving (+${s.scoreDelta})"
-                s.scoreDelta < 0 -> "Declining (${s.scoreDelta})"
-                else -> "Steady"
-            },
-            "Streak" to "${
-                s.streakNights} night" + if (s.streakNights == 1) "" else "s"
-        )
+        buildList {
+            add("Nights tracked" to "${s.nights}")
+            if (includeScores) add("Average score" to "${s.avgScore}")
+            add("Average sleep" to formatDurationShort(s.avgDurationMinutes))
+            add("Average efficiency" to "${s.avgEfficiencyPercent}%")
+            add("Total sleep" to formatDurationShort(s.totalSleepMinutes))
+            if (includeScores) {
+                add("Best night" to "${s.bestScore}")
+                add(
+                    "Trend" to when {
+                        s.scoreDelta > 0 -> "Improving (+${s.scoreDelta})"
+                        s.scoreDelta < 0 -> "Declining (${s.scoreDelta})"
+                        else -> "Steady"
+                    }
+                )
+                add(
+                    "Streak" to "${s.streakNights} night" +
+                        if (s.streakNights == 1) "" else "s"
+                )
+            }
+        }
     }
     return ReportPdfModel(
         title = "Somn ${report.window.title}",

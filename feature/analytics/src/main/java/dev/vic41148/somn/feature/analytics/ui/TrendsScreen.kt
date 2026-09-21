@@ -58,6 +58,14 @@ fun TrendsScreen(
     val lifeStageNote by viewModel.lifeStageBanner.collectAsState()
     val deepSleepTargetPercent by viewModel.deepSleepTargetPercent.collectAsState()
     val deepTarget = deepSleepTargetPercent
+    /** Spec §6.6: off drops the Score metric from the pill and every chart below. */
+    val showScores by viewModel.showStreaksScores.collectAsState()
+    val metricOptions = remember(showScores) {
+        if (showScores) TrendMetric.entries
+        else TrendMetric.entries.filter { it != TrendMetric.SCORE }
+    }
+    val metric = if (!showScores && selectedMetric == TrendMetric.SCORE) TrendMetric.DURATION_HOURS
+    else selectedMetric
 
     Scaffold(
         topBar = {
@@ -102,9 +110,9 @@ fun TrendsScreen(
             // Metric selector pill (DATA-03): the standardized sliding pill,
 // same as the History range bar.
             SlidingPillSelector(
-                options = TrendMetric.entries.map { it.displayName },
-                selectedIndex = TrendMetric.entries.indexOf(selectedMetric).coerceAtLeast(0),
-                onSelect = { viewModel.selectMetric(TrendMetric.entries[it]) }
+                options = metricOptions.map { it.displayName },
+                selectedIndex = metricOptions.indexOf(metric).coerceAtLeast(0),
+                onSelect = { viewModel.selectMetric(metricOptions[it]) }
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -116,19 +124,19 @@ fun TrendsScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            stats?.let { TrendStatsCard(stats = it, metric = selectedMetric) }
+            stats?.let { TrendStatsCard(stats = it, metric = metric) }
 
             Spacer(modifier = Modifier.height(16.dp))
 
             // New chart instance per metric and range so the entrance animation replays on every switch.
-            key(selectedMetric, rangeDays) {
-            val avgValue = remember(sessions, selectedMetric) {
-                sessions.map { viewModel.valueFor(it, selectedMetric) }.average().toFloat()
+            key(metric, rangeDays) {
+            val avgValue = remember(sessions, metric) {
+                sessions.map { viewModel.valueFor(it, metric) }.average().toFloat()
             }
-            val scaleSuffix = if (selectedMetric == TrendMetric.SCORE) " (0-100)" else ""
-            SleepCard(title = "${selectedMetric.displayName}$scaleSuffix · ${stats?.nights ?: sessions.size} nights") {
+            val scaleSuffix = if (metric == TrendMetric.SCORE) " (0-100)" else ""
+            SleepCard(title = "${metric.displayName}$scaleSuffix · ${stats?.nights ?: sessions.size} nights") {
                 val points = sessions.map {
-                    TrendPoint(it.startTimeMillis, viewModel.valueFor(it, selectedMetric))
+                    TrendPoint(it.startTimeMillis, viewModel.valueFor(it, metric))
                 }
                 val bands = cyclePhaseRuns.orEmpty().map { run ->
                     TrendBand(
@@ -137,7 +145,7 @@ fun TrendsScreen(
                         color = run.phase.toBandColor(),
                         label = run.phase.displayName
                     )
-                } + if (selectedMetric == TrendMetric.DEEP_PERCENT && deepTarget != null) {
+                } + if (metric == TrendMetric.DEEP_PERCENT && deepTarget != null) {
                     // Age-calibrated deep-sleep window, the same target±5% band that
                     // calculateDeepSleepScore marks as ideal, drawn behind the line.
                     listOf(
@@ -166,11 +174,11 @@ fun TrendsScreen(
                     ),
                     tableEntries = sessions.map {
                         trendDateFormat.format(Date(it.startTimeMillis)) to
-                            formatAxisValue(viewModel.valueFor(it, selectedMetric), selectedMetric)
+                            formatAxisValue(viewModel.valueFor(it, metric), metric)
                     },
-                    tableDeltaLabel = { delta -> formatDeltaValue(delta, selectedMetric) }
+                    tableDeltaLabel = { delta -> formatDeltaValue(delta, metric) }
                 )
-                if (selectedMetric == TrendMetric.DEEP_PERCENT && deepTarget != null) {
+                if (metric == TrendMetric.DEEP_PERCENT && deepTarget != null) {
                     Text(
                         text = "The shaded band shows your deep sleep target for your age (${"%.0f".format(deepTarget)}% ± 5).",
                         style = MaterialTheme.typography.bodySmall,
@@ -191,7 +199,7 @@ fun TrendsScreen(
                     TrendMetric.DURATION_HOURS,
                     TrendMetric.EFFICIENCY,
                     TrendMetric.DEEP_PERCENT
-                )
+                ).filter { showScores || it != TrendMetric.SCORE }
                 factors.chunked(2).forEach { row ->
                     Row(
                         modifier = Modifier.fillMaxWidth(),

@@ -98,6 +98,8 @@ fun HistoryScreen(
     val rangedSessions by viewModel.rangedSessions.collectAsState()
     val summary by viewModel.summary.collectAsState()
     val rangeDays by viewModel.rangeDays.collectAsState()
+    /** Spec §6.6: off hides the score ring, best and streak, raw times/stages stay. */
+    val showStreaksScores by viewModel.showStreaksScores.collectAsState()
     var selectedTypeFilter by remember { mutableStateOf<SessionType?>(null) }
     var historyExpanded by remember { mutableStateOf(true) }
     val sessions = remember(rangedSessions, selectedTypeFilter) {
@@ -207,7 +209,8 @@ fun HistoryScreen(
                     SummaryCard(
                         summary = report,
                         rangeLabel = rangeLabel(rangeDays),
-                        onRingClick = onNavigateToTrends
+                        onRingClick = onNavigateToTrends,
+                        showScores = showStreaksScores
                     )
                 }
             }
@@ -390,6 +393,7 @@ private fun SummaryCard(
     summary: ReportSummary,
     rangeLabel: String,
     onRingClick: () -> Unit,
+    showScores: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     SleepCard(title = rangeLabel, modifier = modifier) {
@@ -399,6 +403,7 @@ private fun SummaryCard(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
+            if (showScores) {
             StatRing(
                 label = "Score",
                 value = "${summary.avgScore}",
@@ -408,6 +413,7 @@ private fun SummaryCard(
                 strokeWidth = 8.dp,
                 onClick = onRingClick
             )
+            }
             StatRing(
                 label = "Sleep",
                 value = formatDurationShort(summary.avgDurationMinutes),
@@ -434,12 +440,14 @@ private fun SummaryCard(
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
             SummaryMiniStat(value = "${summary.nights}", label = "Nights")
-            SummaryMiniStat(value = "${summary.streakNights}", label = "Night streak")
-            SummaryMiniStat(value = "${summary.bestScore}", label = "Best score")
-            SummaryMiniStat(
-                value = (if (summary.scoreDelta >= 0) "+" else "") + "${summary.scoreDelta}",
-                label = "Trend"
-            )
+            if (showScores) {
+                SummaryMiniStat(value = "${summary.streakNights}", label = "Night streak")
+                SummaryMiniStat(value = "${summary.bestScore}", label = "Best score")
+                SummaryMiniStat(
+                    value = (if (summary.scoreDelta >= 0) "+" else "") + "${summary.scoreDelta}",
+                    label = "Trend"
+                )
+            }
         }
     }
 }

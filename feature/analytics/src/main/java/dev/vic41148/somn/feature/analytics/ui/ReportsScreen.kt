@@ -60,6 +60,8 @@ fun ReportsScreen(
     val scope = rememberCoroutineScope()
     val sessions by viewModel.sessions.collectAsState()
     val restModeSince by viewModel.restModeSince.collectAsState()
+    /** Spec §6.6: off hides every score-derived chip and PDF row, raw sleep numbers stay. */
+    val showScores by viewModel.showStreaksScores.collectAsState()
     var window by remember { mutableStateOf(ReportWindow.WEEK) }
     var status by remember { mutableStateOf<String?>(null) }
     var generating by remember { mutableStateOf(false) }
@@ -119,11 +121,13 @@ fun ReportsScreen(
                     )
                 }
                 PillRow {
+                    if (showScores) {
                     MetricChip(
                         label = "Average score",
                         value = "${summary.avgScore}",
                         modifier = Modifier.weight(1f)
                     )
+                    }
                     MetricChip(
                         label = "Average sleep",
                         value = formatDurationShort(summary.avgDurationMinutes),
@@ -141,6 +145,7 @@ fun ReportsScreen(
                         value = formatDurationShort(summary.totalSleepMinutes),
                         modifier = Modifier.weight(1f)
                     )
+                    if (showScores) {
                     MetricChip(
                         label = "Best night",
                         value = "${summary.bestScore}",
@@ -154,6 +159,7 @@ fun ReportsScreen(
                         },
                         modifier = Modifier.weight(1f)
                     )
+                    }
                 }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -170,7 +176,8 @@ fun ReportsScreen(
                                         viewModel.tagNamesFor(
                                             sessions.filter { it.isCompleted }
                                                 .map { it.id }
-                                        )
+                                        ),
+                                        includeScores = showScores
                                     )
                                     withContext(Dispatchers.IO) {
                                         ReportPdfRenderer.render(
@@ -201,7 +208,8 @@ fun ReportsScreen(
                                         viewModel.tagNamesFor(
                                             sessions.filter { it.isCompleted }
                                                 .map { it.id }
-                                        )
+                                        ),
+                                        includeScores = showScores
                                     )
                                     val file = withContext(Dispatchers.IO) {
                                         ReportPdfRenderer.render(
