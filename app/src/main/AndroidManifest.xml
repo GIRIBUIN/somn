@@ -129,6 +129,84 @@
                 android:resource="@xml/morning_briefing_widget_info" />
         </receiver>
 
+        <!-- Tracking Toggle Widget -->
+        <receiver
+            android:name=".widget.TrackingToggleWidget"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="dev.vic41148.somn.action.TRACKING_STATE_CHANGED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/tracking_toggle_widget_info" />
+        </receiver>
+
+        <!-- Daily Stats Widget -->
+        <receiver
+            android:name=".widget.DailyStatsWidget"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="dev.vic41148.somn.action.TRACKING_STATE_CHANGED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/daily_stats_widget_info" />
+        </receiver>
+
+        <!-- Weekly Stats Widget -->
+        <receiver
+            android:name=".widget.WeeklyStatsWidget"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="dev.vic41148.somn.action.TRACKING_STATE_CHANGED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/weekly_stats_widget_info" />
+        </receiver>
+
+        <!-- Sleep Debt Widget -->
+        <receiver
+            android:name=".widget.SleepDebtWidget"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="dev.vic41148.somn.action.TRACKING_STATE_CHANGED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/sleep_debt_widget_info" />
+        </receiver>
+
+        <!-- Alarm Glance Widget -->
+        <receiver
+            android:name=".widget.AlarmGlanceWidget"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="dev.vic41148.somn.action.TRACKING_STATE_CHANGED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/alarm_glance_widget_info" />
+        </receiver>
+
+        <!-- Weekly Rhythm Widget -->
+        <receiver
+            android:name=".widget.RhythmWidget"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="dev.vic41148.somn.action.TRACKING_STATE_CHANGED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/rhythm_widget_info" />
+        </receiver>
+
     </application>
 
 </manifest>

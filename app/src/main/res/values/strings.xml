@@ -4,4 +4,23 @@
     <!-- Morning briefing widget defaults (RemoteViews placeholders before data loads). -->
     <string name="widget_score_placeholder">--</string>
     <string name="widget_no_data">No sleep data yet</string>
+    <!-- Tracking toggle widget (RemoteViews placeholders + picker description). -->
+    <string name="widget_toggle_idle">Sleep</string>
+    <string name="widget_toggle_hint_idle">Tap to start tracking</string>
+    <string name="widget_toggle_desc">Start sleep tracking or jump back into the night</string>
+    <!-- Daily and weekly stats widgets. -->
+    <string name="widget_daily_title">Last night</string>
+    <string name="widget_daily_desc">Last night score, duration and efficiency</string>
+    <string name="widget_weekly_title">Last 7 days</string>
+    <string name="widget_weekly_desc">Weekly average score, sleep and nights tracked</string>
+    <!-- Sleep debt, alarm glance and weekly rhythm widgets. -->
+    <string name="widget_debt_title">Sleep debt</string>
+    <string name="widget_debt_desc">Running sleep debt with one recovery tip</string>
+    <string name="widget_alarm_none">No alarm</string>
+    <string name="widget_alarm_none_hint">Tap to set one</string>
+    <string name="widget_alarm_title">Next alarm</string>
+    <string name="widget_alarm_desc">Next alarm with its smart wake window</string>
+    <string name="widget_rhythm_title">This week</string>
+    <string name="widget_rhythm_desc">Seven nights as bars with the weekly count</string>
+    <string name="widget_rhythm_count">%1$d/7 nights</string>
 </resources>
