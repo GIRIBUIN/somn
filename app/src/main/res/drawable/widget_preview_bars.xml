@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Static stand-in for the canvas-drawn week bars, preview layouts only.
+    Six logged nights in score-tier colors plus one gray nub for the miss. -->
+<vector
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="252dp"
+    android:height="64dp"
+    android:viewportWidth="252"
+    android:viewportHeight="64">
+    <path android:fillColor="#43A047" android:pathData="M10,16 h16 v48 h-16 z" />
+    <path android:fillColor="#43A047" android:pathData="M46,8 h16 v56 h-16 z" />
+    <path android:fillColor="#FFC107" android:pathData="M82,24 h16 v40 h-16 z" />
+    <path android:fillColor="#9E9E9E" android:pathData="M118,58 h16 v6 h-16 z" />
+    <path android:fillColor="#9CCC65" android:pathData="M154,12 h16 v52 h-16 z" />
+    <path android:fillColor="#43A047" android:pathData="M190,20 h16 v44 h-16 z" />
+    <path android:fillColor="#43A047" android:pathData="M226,14 h16 v50 h-16 z" />
+</vector>

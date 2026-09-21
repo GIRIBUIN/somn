@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Picker preview for the Weekly Rhythm widget: static sample bars. -->
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center_vertical"
+    android:padding="12dp"
+    android:background="@drawable/widget_card">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <ImageView
+            android:layout_width="14dp"
+            android:layout_height="14dp"
+            android:src="@drawable/ic_somn_notification"
+            android:tint="@color/widget_insight"
+            android:contentDescription="@string/widget_rhythm_title" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/widget_rhythm_title"
+            android:textSize="11sp"
+            android:textColor="@color/widget_insight"
+            android:paddingStart="4dp" />
+
+    </LinearLayout>
+
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:layout_marginTop="4dp"
+        android:src="@drawable/widget_preview_bars"
+        android:contentDescription="@string/widget_rhythm_title" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="6/7 nights"
+        android:textSize="14sp"
+        android:textColor="@color/widget_title"
+        android:textStyle="bold" />
+
+</LinearLayout>

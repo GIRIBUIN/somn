@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Static stand-in for the canvas-drawn stage bar, preview layouts only.
+    Deep 18% · REM 22% · Light 47% · Wake 13% across a 252-unit strip. -->
+<vector
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="252dp"
+    android:height="10dp"
+    android:viewportWidth="252"
+    android:viewportHeight="10">
+    <path android:fillColor="#0072B2" android:pathData="M0,0 h45 v10 h-45 z" />
+    <path android:fillColor="#CC79A7" android:pathData="M45,0 h55 v10 h-55 z" />
+    <path android:fillColor="#56B4E9" android:pathData="M100,0 h119 v10 h-119 z" />
+    <path android:fillColor="#D55E00" android:pathData="M219,0 h33 v10 h-33 z" />
+</vector>

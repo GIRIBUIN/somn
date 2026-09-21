@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- DEBUG ONLY: LeakCanary adds a second launcher icon for its display activity,
+        which reads as "opening LeakCanary instead of Somn". This supported toggle
+        hides the icon; heap watching and leak notifications keep working. -->
+    <bool name="leak_canary_add_launcher_icon">false</bool>
+</resources>
