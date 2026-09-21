@@ -50,16 +50,16 @@ class WeeklyReportGenerator @AssistedInject constructor(
             val durationMins = (avgDuration % 60).toInt()
 
             val trend = when {
-                avgScore >= 80 -> "Excellent week!"
-                avgScore >= 60 -> "Solid week, room to improve."
-                else -> "Tough week. Focus on consistency."
+                avgScore >= 80 -> "Great week of showing up."
+                avgScore >= 60 -> "Steady week."
+                else -> "Recovering week. Logging matters more than scores."
             }
 
             val content = buildString {
                 append("$totalNights nights tracked | ")
                 append("Avg Score: ${avgScore.toInt()} | ")
                 append("Avg Duration: ${durationHours}h ${durationMins}m | ")
-                append("Avg Efficiency: ${String.format("%.0f", avgEfficiency * 100)}%\n")
+                append("Avg Efficiency: ${avgEfficiency.toInt()}%\n")
                 append(trend)
             }
 

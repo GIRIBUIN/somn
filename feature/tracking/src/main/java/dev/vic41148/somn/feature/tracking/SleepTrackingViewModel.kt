@@ -3,6 +3,7 @@ package dev.vic41148.somn.feature.tracking
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.vic41148.somn.core.data.repository.HealthConnectRepository
+import dev.vic41148.somn.core.data.repository.AlarmRepository
 import dev.vic41148.somn.core.data.repository.SleepRepository
 import dev.vic41148.somn.core.data.repository.SomnPreferencesRepository
 import dev.vic41148.somn.core.data.repository.UserProfileRepository
@@ -47,6 +48,7 @@ class SleepTrackingViewModel @Inject constructor(
     private val userProfileRepository: UserProfileRepository,
     private val preferencesRepository: SomnPreferencesRepository,
     private val healthConnectRepository: HealthConnectRepository,
+    private val alarmRepository: AlarmRepository,
     private val calculateScore: CalculateSleepScoreUseCase,
     private val classifyStage: ClassifySleepStageUseCase,
     private val fragmentationUseCase: PostpartumFragmentationUseCase,
@@ -85,6 +87,15 @@ class SleepTrackingViewModel @Inject constructor(
     /** R2 Rest Mode boundary, null when off, sick nights leave every baseline. */
     val restModeSince: StateFlow<Long?> = preferencesRepository.restModeSince
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    /** Spec §6.6 gamification kill-switch, hides score rings and streaks on Home. */
+    val showStreaksScores: StateFlow<Boolean> = preferencesRepository.showStreaksScores
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
+    /** Spec §5 Smart Alarm card: all alarms, the card picks the next enabled one. */
+    val alarms: StateFlow<List<dev.vic41148.somn.core.domain.model.Alarm>> =
+        alarmRepository.observeAlarms()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     /**
      * Last-night wearable deltas vs the user's own 14-day median, for the readiness

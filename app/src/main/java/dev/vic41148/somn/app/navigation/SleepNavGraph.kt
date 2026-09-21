@@ -237,7 +237,9 @@ fun SleepNavGraph(
                             navController.navigate("morning_review/$sessionId")
                         },
                         onNavigateToDebt = { navController.navigate("sleep_debt") },
-                        onNavigateToTrends = { navController.navigate("trends") }
+                        onNavigateToTrends = { navController.navigate("trends") },
+                        onNavigateToWindDown = { navController.navigate("wind_down") },
+                        onNavigateToAlarms = { navController.navigate("alarms") }
                     )
                     // In-app update banner (standalone channel only). Rendered as an overlay so the
                     // store channel, whose integration is a no-op composable, draws nothing here.
