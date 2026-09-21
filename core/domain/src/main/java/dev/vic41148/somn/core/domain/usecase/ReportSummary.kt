@@ -2,6 +2,7 @@ package dev.vic41148.somn.core.domain.usecase
 
 import dev.vic41148.somn.core.domain.model.SleepSession
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 
 /**
@@ -20,6 +21,10 @@ data class ReportSummary(
     val scoreDelta: Int,
     /** Consecutive calendar days with at least one session, counting back from the newest. */
     val streakNights: Int,
+    /** Grace nights the current streak run consumed, 0 when the run is unbroken. */
+    val graceUsed: Int = 0,
+    /** Halved previous-run credit kept after an unforgiven break, 0 when unbroken. */
+    val bankedNights: Int = 0,
     val totalSleepMinutes: Int
 )
 
@@ -27,13 +32,27 @@ data class ReportSummary(
 fun summarizeSessions(
     sessions: List<SleepSession>,
     /** Rest Mode boundary: nights on/after this are sick nights, not signal. */
-    excludeSinceMillis: Long? = null
+    excludeSinceMillis: Long? = null,
+    today: LocalDate = LocalDate.now(),
+    /** This month's already-forgiven gap dates, read from DataStore by the caller. */
+    spentDates: Set<LocalDate> = emptySet()
 ): ReportSummary? {
     val completed = sessions.filter {
         it.isCompleted && (excludeSinceMillis == null || it.startTimeMillis < excludeSinceMillis)
     }
     if (completed.isEmpty()) return null
+    val zone = ZoneId.systemDefault()
+    fun dayOf(millis: Long) = Instant.ofEpochMilli(millis).atZone(zone).toLocalDate()
     val byTime = completed.sortedBy { it.startTimeMillis }
+    val frozenDays = if (excludeSinceMillis == null) emptySet()
+    else generateSequence(dayOf(excludeSinceMillis)) { it.plusDays(1) }
+        .takeWhile { !it.isAfter(today) }.toSet()
+    val consistency = computeConsistency(
+        loggedDays = completed.map { dayOf(it.startTimeMillis) }.toSet(),
+        today = today,
+        spentDates = spentDates,
+        frozenDays = frozenDays
+    )
     return ReportSummary(
         nights = completed.size,
         avgScore = completed.map { it.sleepScore }.average().toInt(),
@@ -43,31 +62,11 @@ fun summarizeSessions(
         avgRemPercent = completed.map { it.remSleepPercent }.average().toInt(),
         bestScore = completed.maxOf { it.sleepScore },
         scoreDelta = byTime.last().sleepScore - byTime.first().sleepScore,
-        streakNights = currentStreak(completed, excludeSinceMillis),
+        streakNights = consistency.streak,
+        graceUsed = consistency.graceUsed,
+        bankedNights = consistency.bankedNights,
         totalSleepMinutes = completed.sumOf { it.sleepDurationMinutes }
     )
-}
-
-fun currentStreak(
-    sessions: List<SleepSession>,
-    /** Rest Mode boundary: nights on/after this neither extend nor break the streak. */
-    excludeSinceMillis: Long? = null
-): Int {
-    val days = sessions.filter {
-        it.isCompleted && (excludeSinceMillis == null || it.startTimeMillis < excludeSinceMillis)
-    }
-        .map {
-            Instant.ofEpochMilli(it.startTimeMillis).atZone(ZoneId.systemDefault()).toLocalDate()
-        }
-        .toSortedSet()
-    if (days.isEmpty()) return 0
-    var streak = 1
-    var cursor = days.last()
-    while (days.contains(cursor.minusDays(1))) {
-        cursor = cursor.minusDays(1)
-        streak++
-    }
-    return streak
 }
 
 /** "7h 12m", "45m", or "0m", never blank, so tiles always have something to show. */

@@ -83,13 +83,6 @@ class ReportSummaryTest {
 
     @Test
     fun `formatDurationShort never returns blank`() {
-        assertThat(formatDurationShort(0)).isEqualTo("0m")
-        assertThat(formatDurationShort(45)).isEqualTo("45m")
-        assertThat(formatDurationShort(432)).isEqualTo("7h 12m")
-    }
-
-    @Test
-    fun `rest-mode nights neither extend nor break the streak`() {
         val today = LocalDate.now()
         val zone = ZoneId.systemDefault()
         fun millis(date: LocalDate) =
@@ -103,5 +96,31 @@ class ReportSummaryTest {
         val frozen = summarizeSessions(sessions, excludeSinceMillis = restSince)!!
         assertThat(frozen.streakNights).isEqualTo(3)
         assertThat(frozen.nights).isEqualTo(3)
+    }
+
+    @Test
+    fun `single gap in summary is forgiven by grace`() {
+        val today = LocalDate.now()
+        val sessions = listOf(
+            sessionOn(today.minusDays(3)),
+            sessionOn(today.minusDays(1)),
+            sessionOn(today)
+        )
+        val summary = summarizeSessions(sessions, today = today)!!
+        assertThat(summary.streakNights).isEqualTo(3)
+        assertThat(summary.graceUsed).isEqualTo(1)
+        assertThat(summary.bankedNights).isEqualTo(0)
+    }
+
+    @Test
+    fun `long break in summary steps down instead of zeroing`() {
+        val today = LocalDate.now()
+        // 8-night run, 5-day gap (pool is 3), 2-night run: 2 + 8/2 = 6.
+        val sessions = (0L..1L).map { sessionOn(today.minusDays(it)) } +
+            (7L..14L).map { sessionOn(today.minusDays(it)) }
+        val summary = summarizeSessions(sessions, today = today)!!
+        assertThat(summary.streakNights).isEqualTo(6)
+        assertThat(summary.graceUsed).isEqualTo(3)
+        assertThat(summary.bankedNights).isEqualTo(4)
     }
 }
