@@ -130,6 +130,21 @@ class SleepTrackingService : Service() {
         // the NavGraph can land straight on the tracking screen (Wake Up button) instead of the
         // Home dead-end. Carried on the launcher intent so the service never imports app classes.
         const val EXTRA_OPEN_TRACKING = "dev.vic41148.somn.extra.OPEN_TRACKING"
+        // Home-screen tracking-toggle widget tap while idle: MainActivity opens with this extra,
+        // HomeScreen auto-starts with moon defaults and lands on tracking. Foreground by then,
+        // so the FGS start is legal. Consumed on first read, never double-starts.
+        const val EXTRA_START_TRACKING = "dev.vic41148.somn.extra.START_TRACKING"
+        // State-change ping for the tracking-toggle widget. feature:tracking cannot import the
+        // app-module widget, so this goes out as a package-explicit broadcast (allowed on all
+        // API levels, unlike manifest-registered implicit receivers) and the widget re-renders
+        // immediately instead of waiting for the 30-minute update tick.
+        const val ACTION_TRACKING_STATE_CHANGED = "dev.vic41148.somn.action.TRACKING_STATE_CHANGED"
+
+        fun notifyTrackingStateChanged(context: Context) {
+            context.sendBroadcast(
+                Intent(ACTION_TRACKING_STATE_CHANGED).setPackage(context.packageName)
+            )
+        }
 
         // REL-02: the last epoch held back by the 3-epoch smoothing filter. The ViewModel's
         // stopTracking() and its incomplete-session recovery (finalizeIncompleteSession) read it
@@ -267,6 +282,7 @@ class SleepTrackingService : Service() {
     private fun startTracking(sessionId: Long, mode: TrackingMode) {
         _currentSessionId.value = sessionId
         _trackingState.value    = TrackingState.TRACKING
+        notifyTrackingStateChanged(this)
         _currentAvgBrpm.value   = null
         _activeTrackingMode.value = mode
         _audioRecordingFailed.value = false
@@ -606,6 +622,7 @@ class SleepTrackingService : Service() {
         audioJob?.cancel()
         wakeLock?.let { if (it.isHeld) it.release() }
         _trackingState.value = TrackingState.IDLE
+        notifyTrackingStateChanged(this)
         _currentSessionId.value = null
         _currentAvgBrpm.value = null
         _sonarCalibrationState.value = SonarCollector.SonarCalibrationState.IDLE

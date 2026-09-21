@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/widget_toggle_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="12dp"
+    tools:ignore="Overdraw"
+    android:background="@drawable/widget_card">
+    <!-- tools:ignore above: RemoteViews get no activity theme, the rounded card
+        paints its own day/night background. Icon tint is set in code per night
+        mode, so the moon reads on both card variants. -->
+
+    <ImageView
+        android:id="@+id/widget_toggle_icon"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:src="@drawable/ic_somn_notification"
+        android:contentDescription="@string/widget_toggle_desc" />
+
+    <TextView
+        android:id="@+id/widget_toggle_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/widget_toggle_idle"
+        android:textSize="14sp"
+        android:textColor="@color/widget_score"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/widget_toggle_hint"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/widget_toggle_hint_idle"
+        android:textSize="11sp"
+        android:textColor="@color/widget_insight" />
+
+</LinearLayout>

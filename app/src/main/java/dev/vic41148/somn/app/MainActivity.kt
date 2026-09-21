@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -22,6 +23,7 @@ import dev.vic41148.somn.core.data.repository.SomnPreferencesRepository
 import dev.vic41148.somn.core.data.repository.UserProfileRepository
 import dev.vic41148.somn.core.domain.haptic.HapticsManager
 import dev.vic41148.somn.core.domain.model.ThemeMode
+import dev.vic41148.somn.feature.tracking.service.SleepTrackingService
 import dev.vic41148.somn.core.ui.battery.BatteryExemptionState
 import dev.vic41148.somn.core.ui.haptic.ProvideHaptics
 import dev.vic41148.somn.core.ui.theme.SomnTheme
@@ -69,6 +71,14 @@ class MainActivity : FragmentActivity() {
                 val isOnboardingCompleted by profileRepository
                     .observeOnboardingCompleted()
                     .collectAsState(initial = null)
+
+                // Widget tap-through must not auto-start before onboarding: HomeScreen never
+                // shows until then, and a stale extra would fire days later on first Home.
+                LaunchedEffect(isOnboardingCompleted) {
+                    if (isOnboardingCompleted == false) {
+                        intent.removeExtra(SleepTrackingService.EXTRA_START_TRACKING)
+                    }
+                }
 
                 Surface(
                     modifier = Modifier.fillMaxSize(),
