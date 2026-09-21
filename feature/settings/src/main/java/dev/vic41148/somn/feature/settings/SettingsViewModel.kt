@@ -54,7 +54,8 @@ class SettingsViewModel @Inject constructor(
     private val calculateScore: CalculateSleepScoreUseCase,
     private val portableCrypto: PortableCrypto,
     private val userProfileRepository: dev.vic41148.somn.core.data.repository.UserProfileRepository,
-    private val yamnetModelRepository: dev.vic41148.somn.core.data.model.YamnetModelRepository
+    private val yamnetModelRepository: dev.vic41148.somn.core.data.model.YamnetModelRepository,
+    private val windDownScheduler: dev.vic41148.somn.core.notifications.WindDownReminderScheduler
 ) : ViewModel() {
 
     /**
@@ -157,6 +158,12 @@ class SettingsViewModel @Inject constructor(
         collectInto(preferencesRepository.restModeSince) { state, since ->
             state.copy(restModeSince = since)
         }
+        collectInto(preferencesRepository.showStreaksScores) { state, enabled ->
+            state.copy(showStreaksScores = enabled)
+        }
+        collectInto(preferencesRepository.windDownReminder) { state, enabled ->
+            state.copy(windDownReminder = enabled)
+        }
         collectInto(preferencesRepository.hemisphereOverride) { state, override ->
             state.copy(hemisphereOverride = override)
         }
@@ -209,6 +216,10 @@ class SettingsViewModel @Inject constructor(
         val showReadinessCard: Boolean = true,
         /** R2: Rest Mode start timestamp, null when off. */
         val restModeSince: Long? = null,
+        /** Spec §6.6: hides streaks, score rings and badges, raw data stays. */
+        val showStreaksScores: Boolean = true,
+        /** Spec §6.6: adaptive wind-down nudge, off by default. */
+        val windDownReminder: Boolean = false,
         /** Which hemisphere seasonal analysis assumes. AUTO keeps the timezone heuristic. */
         val hemisphereOverride: HemisphereOverride = HemisphereOverride.AUTO,
         val snoreNudgeEnabled: Boolean = true,
@@ -410,6 +421,20 @@ class SettingsViewModel @Inject constructor(
             preferencesRepository.setRestModeSince(
                 if (enabled) System.currentTimeMillis() else null
             )
+        }
+    }
+
+    /** Spec §6.6: the honest off-ramp for users who find any gamification counterproductive. */
+    fun updateShowStreaksScores(enabled: Boolean) {
+        viewModelScope.launch { preferencesRepository.updateShowStreaksScores(enabled) }
+    }
+
+    /** Wind-down nudge: on schedules the adaptive chain, off cancels it outright. */
+    fun updateWindDownReminder(enabled: Boolean) {
+        viewModelScope.launch {
+            preferencesRepository.updateWindDownReminder(enabled)
+            if (enabled) windDownScheduler.schedule()
+            else windDownScheduler.cancel()
         }
     }
 

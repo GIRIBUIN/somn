@@ -112,6 +112,15 @@ class SomnPreferencesRepository @Inject constructor(
         val SHOW_READINESS_CARD = booleanPreferencesKey("show_readiness_card")
         /** R2 Rest Mode start timestamp. Absent = off, sick nights on/after this leave baselines. */
         val REST_MODE_SINCE = longPreferencesKey("rest_mode_since")
+        /** Spec §6.6: hides every streak, score ring and badge, raw stage/duration data stays. */
+        val SHOW_STREAKS_SCORES = booleanPreferencesKey("show_streaks_scores")
+        /** Spec §6.2: "yyyy-MM" bucket the grace spend below belongs to, absent = fresh pool. */
+        val GRACE_MONTH = stringPreferencesKey("grace_month")
+        /** Forgiven gap dates inside [GRACE_MONTH] as ISO CSV. Dates, never a count:
+         * a spent count fed back into its own computation oscillates the streak. */
+        val GRACE_DATES = stringPreferencesKey("grace_dates")
+        /** Spec §6.6: adaptive wind-down nudge, off by default, never a fixed hour. */
+        val WIND_DOWN_REMINDER = booleanPreferencesKey("wind_down_reminder")
         val MENO_ANSWERS_CSV = stringPreferencesKey("meno_answers_csv")        /**
          * Which hemisphere seasonal analysis uses. Absent (or unmappable) = AUTO, the
          * UTC-offset heuristic in SeasonalAnalysisUseCase stays in charge.
@@ -320,6 +329,43 @@ class SomnPreferencesRepository @Inject constructor(
             if (sinceMillis == null) it.remove(PreferencesKeys.REST_MODE_SINCE)
             else it[PreferencesKeys.REST_MODE_SINCE] = sinceMillis
         }
+    }
+
+    /** Spec §6.6 gamification kill-switch, on by default so existing users see no change. */
+    val showStreaksScores: Flow<Boolean> = context.dataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { it[PreferencesKeys.SHOW_STREAKS_SCORES] ?: true }
+
+    suspend fun updateShowStreaksScores(enabled: Boolean) {
+        context.dataStore.edit { it[PreferencesKeys.SHOW_STREAKS_SCORES] = enabled }
+    }
+
+    /** Spec §6.2 grace pool ledger. [recordGraceDates] is the only writer, it no-ops
+     * when nothing changed so the summary recompute loop settles after one union. */
+    val graceMonth: Flow<String?> = context.dataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { it[PreferencesKeys.GRACE_MONTH] }
+
+    val graceDatesCsv: Flow<String?> = context.dataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { it[PreferencesKeys.GRACE_DATES] }
+
+    suspend fun recordGraceDates(monthKey: String, datesCsv: String) {
+        context.dataStore.edit {
+            if (it[PreferencesKeys.GRACE_MONTH] != monthKey || it[PreferencesKeys.GRACE_DATES] != datesCsv) {
+                it[PreferencesKeys.GRACE_MONTH] = monthKey
+                it[PreferencesKeys.GRACE_DATES] = datesCsv
+            }
+        }
+    }
+
+    /** Wind-down nudge toggle, off by default: a new notification needs opting into. */
+    val windDownReminder: Flow<Boolean> = context.dataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { it[PreferencesKeys.WIND_DOWN_REMINDER] ?: false }
+
+    suspend fun updateWindDownReminder(enabled: Boolean) {
+        context.dataStore.edit { it[PreferencesKeys.WIND_DOWN_REMINDER] = enabled }
     }
 
     /**

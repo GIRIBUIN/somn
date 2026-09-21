@@ -470,6 +470,32 @@ fun SettingsScreen(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    // Spec §6.6: the gamification kill-switch. Off hides streaks,
+                    // rings and badges everywhere, raw stage/duration data stays.
+                    SettingToggle(
+                        title = "Show streaks and scores",
+                        checked = settings.showStreaksScores,
+                        onCheckedChange = { viewModel.updateShowStreaksScores(it) }
+                    )
+                    Text(
+                        text = "Off shows just your sleep times and stages, no streak, " +
+                            "no rings, no badges. For nights when any score feels like pressure.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    // Wind-down nudge: fires 45 min before your own revealed bedtime,
+                    // never at a fixed hour. Silent until enough nights reveal the window.
+                    SettingToggle(
+                        title = "Wind-down reminder",
+                        checked = settings.windDownReminder,
+                        onCheckedChange = { viewModel.updateWindDownReminder(it) }
+                    )
+                    Text(
+                        text = "A gentle nudge before your usual bedtime. No scores, " +
+                            "no streaks, and never while Rest Mode is on.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
 
 
