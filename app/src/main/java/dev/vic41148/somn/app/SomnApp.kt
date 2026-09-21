@@ -32,6 +32,9 @@ class SomnApp : Application(), Configuration.Provider {
     @Inject
     lateinit var updateIntegrations: Set<@JvmSuppressWildcards UpdateIntegration>
 
+    @Inject
+    lateinit var windDownScheduler: dev.vic41148.somn.core.notifications.WindDownReminderScheduler
+
     override fun onCreate() {
         super.onCreate()
         // Debug-only tripwires: main-thread disk/network IO, leaked closables and
@@ -62,6 +65,11 @@ class SomnApp : Application(), Configuration.Provider {
         scheduleWeeklyReport()
         scheduleClipRetention()
         scheduleLocalBackup()
+        // Wind-down nudge chain: no-op unless the toggle is on, recovers the
+        // next fire after reboot or update without waiting for Settings.
+        CoroutineScope(Dispatchers.IO).launch {
+            runCatching { windDownScheduler.schedule() }
+        }
         // One-time upgrade: seal any still-plaintext sensitive prefs (v0.1.2 installs).
         // Fire-and-forget on IO, reads tolerate both forms until it lands.
         CoroutineScope(Dispatchers.IO).launch {
