@@ -54,7 +54,6 @@ class MorningBriefingWidget : AppWidgetProvider() {
         widgetScope.launch {
             val views = RemoteViews(context.packageName, R.layout.widget_morning_briefing)
             val launch = Intent(context, MainActivity::class.java).apply {
-                action = "dev.vic41148.somn.action.OPEN_MORNING_BRIEFING"
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or
                     Intent.FLAG_ACTIVITY_SINGLE_TOP
             }
